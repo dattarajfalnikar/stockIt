@@ -1,0 +1,69 @@
+{%extends "base.html" %}
+
+<div>
+    {% block content%}
+    <div>
+        <form action="http://192.168.1.66:5000/dailyreport" method="POST"
+            enctype = "multipart/form-data">
+            <input type="date" name="selected_date" />
+            <input type="submit" />
+            <select name="filter">
+                <option value="sort_by_delivery">Sort by delivert Qty</option>
+                <option value="this_month_ex_date">Filter by Month, Ex Date</option>
+                <option value="sort_by_daily_change">Sort by Daily Change</option>
+            </select>
+        </form>
+        <br>
+        {{data.get('date')}} - Daily Screener
+        <br>
+    </div>
+    <table class="sortable">
+        <tr>
+            <th>Index</th>
+            <th>Company Name</th>
+            <th>Symbol</th>
+            <th>Prev_Close</th>
+            <th>Open</th>
+            <th>High</th>
+            <th>Low</th>
+            <th>Close</th>
+            <th>Upper Circuit</th>
+            <th>Today's Change in %</th>
+            <th>One Day Change in %</th>
+            <th>Lower Circuit</th>
+            <th>Total Qty Traded</th>
+            <th>Delivery Qty</th>
+            <th>Delivery Qty %</th>
+            <th>52 Weeks High</th>
+            <th>52 Weeks Low</th>
+            <th>Ex Dividend Date</th>
+            <th>Purpose of Ex Date</th>
+        </tr>
+            {% for d in data.get('data'):%}
+            <tr>
+                <td>{{loop.index}}</td>
+                <td>{{d.company_name}}</td>
+                <td>{{d.symbol}}</td>
+                <td>{{d.prev_close}}</td>
+                <td>{{d.open}}</td>
+                <td>{{d.high}}</td>
+                <td>{{d.low}}</td>
+                <td>{{d.close}}</td>
+                <td>{{d.upper_circuit}}</td>
+                <td>{{d.day_change}}</td>
+                <td>{{d.one_day_change}}</td>
+                <td>{{d.lower_circuit}}</td>
+                <td>{{d.quantity_traded}}</td>
+                <td>{{d.delivery_quantity}}</td>
+                <td>{{d.total_delivery_percentage}}</td>
+                <td>{{d.high52}}</td>
+                <td>{{d.low52}}</td>
+                <td>{{d.ex_date}}</td>
+                <td>{{d.purpose}}</td>
+            </tr>
+            {% endfor %}
+    </table>
+
+    {% endblock %}
+
+</div>

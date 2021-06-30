@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+{% block head %}
+<h1> Welcome to {{name}} </h1>
+{% endblock %}
+</head>
+<body>
+    {% block content %}
+    {% endblock %}
+
+</body>
+<style>
+    table{
+        font-family: arial, sans-serif;
+        width: 100%;
+    }
+
+     th{
+        border: 1px solid #dddddd;
+        background-color: #4cb96b;
+        padding: 8px;
+        position: sticky;
+        top: 0;
+    }
+
+    tr:nth-child(even) {
+         background-color: #dddddd;
+    }
+
+</style>
+</html>

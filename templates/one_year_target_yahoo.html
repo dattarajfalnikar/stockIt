@@ -1,0 +1,32 @@
+{%extends "base.html" %}
+
+<div>
+    {% block content%}
+    <table>
+        <tr>
+            <th>Company Name</th>
+            <th>Symbol</th>
+            <th>Prev_Close</th>
+            <th>One Year Target by Yahoo</th>
+            <th>One Year Target Change Est %</th>
+            <th>PE Ratio</th>
+            <th>Earnings Per Share</th>
+            <th>Ex Dividend Date</th>
+        </tr>
+            {% for d in data:%}
+                <tr>
+                    <td>{{d.company_name}}</td>
+                    <td>{{d.symbol}}</td>
+                    <td>{{d.prev_close}}</td>
+                    <td>{{d.one_year_target_est}}</td>
+                    <td>{{d.one_year_target_est_percentage}}</td>
+                    <td>{{d.pe_ratio}}</td>
+                    <td>{{d.eps_ttm}}</td>
+                    <td>{{d.ex_dividend_date}}</td>
+                </tr>
+            {% endfor %}
+    </table>
+
+    {% endblock %}
+
+</div>
