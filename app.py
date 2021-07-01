@@ -20,6 +20,7 @@ import pandas_datareader.data as web
 from nsetools import Nse
 import yahoo_fin.stock_info as y_fin
 import math
+import os
 
 app = Flask(__name__)
 
@@ -27,7 +28,7 @@ app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_DEFAULT_SENDER'] = 'stockitdev@gmail.com'
 app.config['MAIL_USERNAME'] = 'stockitdev@gmail.com'
-app.config['MAIL_PASSWORD'] = 'stockitdev@pucsd'
+app.config['MAIL_PASSWORD'] = os.environ('MAIL_PASSWORD')
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
