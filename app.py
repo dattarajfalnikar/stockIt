@@ -21,14 +21,15 @@ from nsetools import Nse
 import yahoo_fin.stock_info as y_fin
 import math
 import os
+from multiprocessing import Process, Manager
 
 app = Flask(__name__)
 
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
-app.config['MAIL_DEFAULT_SENDER'] = 'stockitdev@gmail.com'
-app.config['MAIL_USERNAME'] = 'stockitdev@gmail.com'
-app.config['MAIL_PASSWORD'] = os.environ('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME_STOCKIT')
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME_STOCKIT')#'stockitdev@gmail.com'
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD_STOCKIT') #'stockitdev@pucsd'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -138,7 +139,7 @@ def send_daily_analysis_email(trix, send_to=[], name='StockIt Analysis-', user_m
         msg = Message(user_msg + str(datetime.date.today()))
 
     if not html:
-        msg.html = '<div> Hello Investor,' \
+        msg.html = '<div> Dear Investor,' \
                    '<br><br> Please find attached xl-sheet about Todays Analysis. </div>' \
                    ' <br><div> Note: Data Is based on NSE Equity, You might see minor Differences in stock price </div>'
     else:
@@ -156,6 +157,7 @@ def home_page():
                   'ishancshinde23@gmail.com',
                   'chavare29@gmail.com',
                   'vaibhav.mukadam@gmail.com',
+                  'subhampaul137@gmail.com',
                   ]
     # user_list = []
     #
@@ -226,13 +228,11 @@ def yahoo_stock_target():
     return render_template('one_year_target_yahoo.html', data=stocks)
 
 
-@app.route('/update_stock_details')
-def update_stock_details():
-    index = 0
-    for stock in Stocks.query.all():
-        print(index, stock.symbol, '::', stock.company_name)
-
+def update_stock_details_process(stocks):
+    # ipdb.set_trace()
+    for stock in stocks:
         try:
+            print(stock.symbol, '::', stock.id)
             data = y_fin.get_quote_table(stock.symbol + NSE)
             print(data)
             if type(data) is dict:
@@ -241,7 +241,24 @@ def update_stock_details():
         except ValueError:
             print('Decoding Json Failed!!')
 
-        index += 1
+
+@app.route('/update_stock_details')
+def update_stock_details():
+    index = 0
+    limit = 100
+    stocks = Stocks.query.all()
+    process_pool = []
+    while stocks[index: limit]:
+        process_pool.append(Process(target=update_stock_details_process, args=(stocks[index: limit], )))
+        index += 100
+        limit += 100
+
+    for process in process_pool:
+        process.start()
+
+    for process in process_pool:
+        process.join()
+
     return 'Stock details Updated!'
 
 
@@ -339,6 +356,10 @@ def daily_report_nsetool():
         db_query = DailyStockData.query.filter(
             DailyStockData.date == get_record_for).order_by(
             DailyStockData.daily_percentage_change.desc()).all()
+    elif request.form.get('filter') == 'sort_by_one_day_change':
+        db_query = DailyStockData.query.filter(
+            DailyStockData.date == get_record_for).order_by(
+            DailyStockData.one_day_percentage_change.desc()).all()
     elif request.form.get('filter') == 'this_month_ex_date':
         month = get_record_for.strftime('%b')
         if get_record_for > datetime.date.today():
@@ -374,6 +395,7 @@ def daily_report_nsetool():
         display_data['upper_circuit'] = data.upper_band
         display_data['lower_circuit'] = data.lower_band
         display_data['ex_date'] = data.ex_date
+        display_data['record_date'] = data.record_date
         data_list.append(display_data)
     if not data_list:
         context_data = {'err': 'No Data Found!',}
@@ -468,74 +490,167 @@ def daily_data_yahoo():
     return 'Today is Weekend'
 
 
+# @app.route('/dailydata', methods=['GET'])
+# def daily_data_nsetool():
+#     # datetime.datetime.strptime(data.get('secDate').split(' ')[0], '%d-%B-%Y').date()   #datetime get from nse tool
+#     nse = Nse()
+#     index = 1
+#     # ipdb.set_trace()
+#     if datetime.date.weekday(datetime.date.today()) not in [6,]:
+#         # stocks = Stocks.query.all()
+#         all_data = []
+#         all_logs = []
+#         secdate = None
+#         daily_p_change = None
+#         #        # for stock in Stocks.query.filter(Stocks.symbol.like('BKMINDST')):
+#         for stock in Stocks.query.all():
+#             stock_data = None
+#             print(stock.symbol, '======================================', stock.company_name)
+#             try:
+#                 stock_data = nse.get_quote(stock.symbol)
+#             except Exception as e:
+#                 print(e)
+#             try:
+#                 if stock_data:
+#                     print(index, stock_data)
+#                     openprice = stock_data.get('open')
+#                     closeprice = stock_data.get('closePrice')
+#                     if stock_data.get('secDate'):
+#                         secdate = datetime.datetime.strptime(stock_data.get('secDate').split(' ')[0], '%d-%b-%Y').date()
+#                     if openprice and closeprice:
+#                         daily_p_change = ((closeprice - openprice) * 100) / openprice
+#
+#                     all_data.append(DailyStockData(
+#                                                    company_name=stock.company_name,
+#                                                    symbol=stock.symbol,
+#                                                    prev_close_price=stock_data.get('previousClose'),
+#                                                    open_price=openprice,
+#                                                    close_price=closeprice,
+#                                                    day_low_price=stock_data.get('dayLow'),
+#                                                    day_high_price=stock_data.get('dayHigh'),
+#                                                    last_price=stock_data.get('lastPrice'),
+#                                                    average_price=stock_data.get('averagePrice'),
+#                                                    upper_band=stock_data.get('pricebandupper'),
+#                                                    lower_band=stock_data.get('pricebandlower'),
+#                                                    high52=stock_data.get('high52'),
+#                                                    low52=stock_data.get('low52'),
+#                                                    purpose=stock_data.get('purpose'),
+#                                                    record_date=stock_data.get('recordDate'),
+#                                                    ex_date=stock_data.get('exDate'),
+#                                                    delivery_quantity=stock_data.get('deliveryQuantity'),
+#                                                    delivery_to_traded_quantity_percentage=stock_data.get(
+#                                                        'deliveryToTradedQuantity'),
+#                                                    face_value=stock_data.get('faceValue'),
+#                                                    quantity_traded=stock_data.get('quantityTraded'),
+#                                                    total_traded_volume=stock_data.get('totalTradedVolume'),
+#                                                    total_buy_quantity=stock_data.get('totalBuyQuantity'),
+#                                                    total_sell_quantity=stock_data.get('totalSellQuantity'),
+#                                                    daily_percentage_change=daily_p_change,
+#                                                    one_day_percentage_change=stock_data.get('pChange'),
+#                                                    css_status=stock_data.get('css_status_desc'),
+#                                                    date=secdate,
+#                                                    ))
+#                 index += 1
+#             except IndexError as e:
+#                 all_logs.append(Dailylogs(symbol=stock.symbol, company_name=stock.company_name, error=e))
+#                 print(stock.symbol, '+++++++++++++++++++++++++++', stock.company_name)
+#
+#         if not all_data:
+#             return 'No Data is Added'
+#
+#         db.session.add_all(all_data)
+#         db.session.add_all(all_logs)
+#         db.session.commit()
+#
+#         return 'Data Added Successfully'
+#     return 'Today is Weekend'
+
+
+def daily_data_process(stocks, nse, all_data, all_logs):
+    secdate = None
+    daily_p_change = None
+    #        # for stock in Stocks.query.filter(Stocks.symbol.like('BKMINDST')):
+    for stock in stocks:
+        stock_data = None
+        print(stock.symbol, '======================================', stock.company_name)
+        try:
+            stock_data = nse.get_quote(stock.symbol)
+        except Exception as e:
+            print(e)
+        try:
+            if stock_data:
+                print(stock.id, stock_data)
+                openprice = stock_data.get('open')
+                closeprice = stock_data.get('closePrice')
+                if stock_data.get('secDate'):
+                    secdate = datetime.datetime.strptime(stock_data.get('secDate').split(' ')[0], '%d-%b-%Y').date()
+                if openprice and closeprice:
+                    daily_p_change = ((closeprice - openprice) * 100) / openprice
+
+                all_data.append(DailyStockData(
+                    company_name=stock.company_name,
+                    symbol=stock.symbol,
+                    prev_close_price=stock_data.get('previousClose'),
+                    open_price=openprice,
+                    close_price=closeprice,
+                    day_low_price=stock_data.get('dayLow'),
+                    day_high_price=stock_data.get('dayHigh'),
+                    last_price=stock_data.get('lastPrice'),
+                    average_price=stock_data.get('averagePrice'),
+                    upper_band=stock_data.get('pricebandupper'),
+                    lower_band=stock_data.get('pricebandlower'),
+                    high52=stock_data.get('high52'),
+                    low52=stock_data.get('low52'),
+                    purpose=stock_data.get('purpose'),
+                    record_date=stock_data.get('recordDate'),
+                    ex_date=stock_data.get('exDate'),
+                    delivery_quantity=stock_data.get('deliveryQuantity'),
+                    delivery_to_traded_quantity_percentage=stock_data.get(
+                        'deliveryToTradedQuantity'),
+                    face_value=stock_data.get('faceValue'),
+                    quantity_traded=stock_data.get('quantityTraded'),
+                    total_traded_volume=stock_data.get('totalTradedVolume'),
+                    total_buy_quantity=stock_data.get('totalBuyQuantity'),
+                    total_sell_quantity=stock_data.get('totalSellQuantity'),
+                    daily_percentage_change=daily_p_change,
+                    one_day_percentage_change=stock_data.get('pChange'),
+                    css_status=stock_data.get('css_status_desc'),
+                    date=secdate,
+                ))
+
+        except IndexError as e:
+            all_logs.append(Dailylogs(symbol=stock.symbol, company_name=stock.company_name, error=e))
+            print(stock.symbol, '+++++++++++++++++++++++++++', stock.company_name)
+
+
 @app.route('/dailydata', methods=['GET'])
 def daily_data_nsetool():
-    # datetime.datetime.strptime(data.get('secDate').split(' ')[0], '%d-%B-%Y').date()   #datetime get from nse tool
     nse = Nse()
-    index = 1
-    # ipdb.set_trace()
-    if datetime.date.weekday(datetime.date.today()) not in [5, 6]:
-        # stocks = Stocks.query.all()
-        all_data = []
-        all_logs = []
-        secdate = None
-        daily_p_change = None
-        #        # for stock in Stocks.query.filter(Stocks.symbol.like('BKMINDST')):
-        for stock in Stocks.query.all():
-            stock_data = None
-            print(stock.symbol, '======================================', stock.company_name)
-            try:
-                stock_data = nse.get_quote(stock.symbol)
-            except Exception as e:
-                print(e)
-            try:
-                if stock_data:
-                    print(index, stock_data)
-                    openprice = stock_data.get('open')
-                    closeprice = stock_data.get('closePrice')
-                    if stock_data.get('secDate'):
-                        secdate = datetime.datetime.strptime(stock_data.get('secDate').split(' ')[0], '%d-%b-%Y').date()
-                    if openprice and closeprice:
-                        daily_p_change = ((closeprice - openprice) * 100) / openprice
+    start_index = 0
+    limit = 100
+    if datetime.date.weekday(datetime.date.today()) not in [6, 5,]:
+        stocks = Stocks.query.all()
+        manager = Manager()
+        all_data = manager.list()
+        all_logs = manager.list()
+        process_list = []
+        while stocks[start_index: limit]:
+            process_list.append(Process(target=daily_data_process,
+                                        args=(stocks[start_index: limit], nse, all_data, all_logs,)))
+            start_index += 100
+            limit += 100
 
-                    all_data.append(DailyStockData(
-                                                   company_name=stock.company_name,
-                                                   symbol=stock.symbol,
-                                                   prev_close_price=stock_data.get('previousClose'),
-                                                   open_price=openprice,
-                                                   close_price=closeprice,
-                                                   day_low_price=stock_data.get('dayLow'),
-                                                   day_high_price=stock_data.get('dayHigh'),
-                                                   last_price=stock_data.get('lastPrice'),
-                                                   average_price=stock_data.get('averagePrice'),
-                                                   upper_band=stock_data.get('pricebandupper'),
-                                                   lower_band=stock_data.get('pricebandlower'),
-                                                   high52=stock_data.get('high52'),
-                                                   low52=stock_data.get('low52'),
-                                                   purpose=stock_data.get('purpose'),
-                                                   record_date=stock_data.get('recordDate'),
-                                                   ex_date=stock_data.get('exDate'),
-                                                   delivery_quantity=stock_data.get('deliveryQuantity'),
-                                                   delivery_to_traded_quantity_percentage=stock_data.get(
-                                                       'deliveryToTradedQuantity'),
-                                                   face_value=stock_data.get('faceValue'),
-                                                   quantity_traded=stock_data.get('quantityTraded'),
-                                                   total_traded_volume=stock_data.get('totalTradedVolume'),
-                                                   total_buy_quantity=stock_data.get('totalBuyQuantity'),
-                                                   total_sell_quantity=stock_data.get('totalSellQuantity'),
-                                                   daily_percentage_change=daily_p_change,
-                                                   one_day_percentage_change=stock_data.get('pChange'),
-                                                   css_status=stock_data.get('css_status_desc'),
-                                                   date=secdate,
-                                                   ))
-                index += 1
-            except IndexError as e:
-                all_logs.append(Dailylogs(symbol=stock.symbol, company_name=stock.company_name, error=e))
-                print(stock.symbol, '+++++++++++++++++++++++++++', stock.company_name)
+        for process in process_list:
+            process.start()
+
+        for process in process_list:
+            process.join()
 
         if not all_data:
             return 'No Data is Added'
 
+        print('total stocks::', len(stocks))
+        print('total stocks output::', len(all_data))
         db.session.add_all(all_data)
         db.session.add_all(all_logs)
         db.session.commit()

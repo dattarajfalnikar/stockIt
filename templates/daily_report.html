@@ -3,7 +3,7 @@
 <div>
     {% block content%}
     <div>
-        <form action="http://192.168.1.66:5000/dailyreport" method="POST"
+        <form action="http://127.0.0.1:5000/dailyreport" method="POST"
             enctype = "multipart/form-data">
             <input type="date" name="selected_date" />
             <input type="submit" />
@@ -11,6 +11,7 @@
                 <option value="sort_by_delivery">Sort by delivert Qty</option>
                 <option value="this_month_ex_date">Filter by Month, Ex Date</option>
                 <option value="sort_by_daily_change">Sort by Daily Change</option>
+                <option value="sort_by_one_day_close">Sort by One Day(based on Close Price) Change</option>
             </select>
         </form>
         <br>
@@ -38,6 +39,7 @@
             <th>52 Weeks Low</th>
             <th>Ex Dividend Date</th>
             <th>Purpose of Ex Date</th>
+            <th>Record Date</th>
         </tr>
             {% for d in data.get('data'):%}
             <tr>
@@ -60,6 +62,7 @@
                 <td>{{d.low52}}</td>
                 <td>{{d.ex_date}}</td>
                 <td>{{d.purpose}}</td>
+                <td>{{d.record_date}}</td>
             </tr>
             {% endfor %}
     </table>
