@@ -5,7 +5,6 @@ from flask import Flask, render_template, request
 # from flask import
 from flask_migrate import Migrate
 import xlrd
-import ipdb
 from flask_sqlalchemy import SQLAlchemy
 from openpyxl import Workbook, load_workbook
 import json
@@ -35,7 +34,7 @@ app.config['MAIL_USE_SSL'] = True
 
 mail = Mail(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:123@localhost/stockit'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://os.environ.get("My_SQL_id"):os.environ.get("My_SQL_PASS")@localhost/os.environ.get("My_SQL_DB_NAME")'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -223,13 +222,11 @@ def get_stock_details():
 def yahoo_stock_target():
     index = 0
     stock_details = get_stock_details()
-    # ipdb.set_trace()
     stocks = sorted(stock_details, key=lambda k: k['one_year_target_est_percentage'], reverse=True)
     return render_template('one_year_target_yahoo.html', data=stocks)
 
 
 def update_stock_details_process(stocks):
-    # ipdb.set_trace()
     for stock in stocks:
         try:
             print(stock.symbol, '::', stock.id)
@@ -264,7 +261,6 @@ def update_stock_details():
 
 @app.route('/dailyreportemailyahoo', methods=['GET'])
 def daily_report_email_yahoo():
-    # ipdb.set_trace()
     wb = Workbook()
     sheet = wb.active
 
@@ -288,7 +284,6 @@ def daily_report_email_yahoo():
 
 @app.route('/dailyreportemail', methods=['GET'])
 def daily_report_email():
-    # ipdb.set_trace()
     wb = Workbook()
     sheet = wb.active
 
@@ -317,7 +312,6 @@ def daily_report_email():
 
 @app.route('/dailyreportyahoo', methods=['GET'])
 def daily_report_yahoo():
-    # ipdb.set_trace()
     context_data = {}
     data_list = []
     for data in DailyStockAnalysis.query.filter(
@@ -336,13 +330,12 @@ def daily_report_yahoo():
         data_list.append(display_data)
     context_data['data'] = data_list
     context_data['date'] = str(datetime.date.today())
-    # ipdb.set_trace()
+
     return render_template('daily_report.html', name='StockIT', data=context_data)
 
 
 @app.route('/dailyreport', methods=['GET', 'POST'])
 def daily_report_nsetool():
-    # ipdb.set_trace()
     context_data = {}
     data_list = []
     #-datetime.timedelta(days=1)
@@ -495,7 +488,7 @@ def daily_data_yahoo():
 #     # datetime.datetime.strptime(data.get('secDate').split(' ')[0], '%d-%B-%Y').date()   #datetime get from nse tool
 #     nse = Nse()
 #     index = 1
-#     # ipdb.set_trace()
+#
 #     if datetime.date.weekday(datetime.date.today()) not in [6,]:
 #         # stocks = Stocks.query.all()
 #         all_data = []
