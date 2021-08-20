@@ -33,8 +33,7 @@ app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
 mail = Mail(app)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://'+os.environ.get('MySQL_ID')+':'+os.environ.get('MySQL_PASS')+'@localhost/'+os.environ.get('MySQL_DB_NAME')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://'+str(os.environ.get('MySQL_ID'))+':'+str(os.environ.get('MySQL_PASS'))+'@localhost/'+str(os.environ.get('MySQL_DB_NAME'))
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
